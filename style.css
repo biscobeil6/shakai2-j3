@@ -403,3 +403,231 @@ th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left
   .history-note-viewer { min-height: 70vh; }
   .history-note-frame { height: 70vh; min-height: 520px; }
 }
+
+/* v3.6 Readability tuning for cross-era tables and comprehensive sets */
+@media (min-width: 900px) {
+  main { width: min(100%, 1180px); padding-left: 16px; padding-right: 16px; }
+}
+
+/* Cross-era tables: prioritize readable text and vertical growth over horizontal scrolling. */
+.cross-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(235px, .86fr);
+  gap: 9px;
+}
+.cross-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: clamp(14px, 1.55vw, 16px);
+  line-height: 1.52;
+}
+.cross-table th,
+.cross-table td {
+  min-width: 0;
+  width: auto;
+  padding: 9px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  vertical-align: top;
+}
+.cross-table th:first-child,
+.cross-table td:first-child {
+  min-width: 0;
+  width: 16%;
+}
+.cross-layout .knowledge-table-wrap { overflow-x: visible; }
+.cross-layout .knowledge-answer-panel { padding-left: 9px; padding-right: 9px; }
+
+/* Comprehensive problems: larger reading text, tighter boxes, vertical scrolling preferred. */
+.general-layout {
+  grid-template-columns: minmax(0, 1.72fr) minmax(255px, .68fr);
+  gap: 9px;
+}
+.general-question-panel { padding: 12px 14px; }
+.general-source { margin-bottom: 9px; }
+.general-source summary,
+.general-explanation summary {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.general-source .general-markdown {
+  padding: 8px 10px 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.general-question-text {
+  font-size: clamp(16px, 1.9vw, 19px);
+  line-height: 1.62;
+}
+.general-qno { margin-bottom: 6px; }
+.general-markdown p { margin: 6px 0; }
+.general-markdown blockquote { line-height: 1.58; }
+.general-table-wrap { overflow-x: visible; }
+.general-md-table {
+  table-layout: fixed;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.general-md-table th,
+.general-md-table td {
+  padding: 8px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.general-explanation {
+  max-height: 260px;
+}
+.general-explanation .general-markdown {
+  padding: 1px 10px 10px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.general-answer-panel { padding-left: 10px; padding-right: 10px; }
+
+@media (orientation: landscape) and (max-height: 850px) and (min-width: 700px) {
+  .cross-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(230px, .82fr);
+    gap: 8px;
+  }
+  .cross-table {
+    min-width: 0;
+    font-size: clamp(14px, 1.48vw, 16px);
+    line-height: 1.48;
+  }
+  .cross-table th,
+  .cross-table td { padding: 8px 7px; }
+
+  .general-layout {
+    grid-template-columns: minmax(0, 1.75fr) minmax(245px, .64fr);
+    gap: 8px;
+  }
+  .general-question-panel {
+    padding: 10px 12px;
+    max-height: calc(100vh - 95px);
+  }
+  .general-source summary,
+  .general-explanation summary {
+    padding: 7px 9px;
+    font-size: 14px;
+  }
+  .general-source .general-markdown {
+    padding: 7px 9px 9px;
+    font-size: 15px;
+    line-height: 1.56;
+  }
+  .general-question-text {
+    font-size: clamp(16px, 1.8vw, 18px);
+    line-height: 1.56;
+  }
+  .general-answer-box { margin: 5px 0; padding: 6px 8px; }
+  .general-explanation { max-height: 210px; margin: 5px 0; }
+  .general-explanation .general-markdown {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 760px), (orientation: portrait) {
+  .cross-table { min-width: 0; font-size: 14px; }
+  .cross-layout .knowledge-table-wrap { overflow-x: visible; }
+  .general-source .general-markdown,
+  .general-question-text { font-size: 16px; }
+  .general-explanation .general-markdown { font-size: 14px; }
+}
+
+/* v3.6.1 Handwriting-width restore: keep v3.5-sized writing area while preserving readability. */
+.cross-layout {
+  grid-template-columns: minmax(0, 2.2fr) minmax(285px, .8fr);
+  gap: 9px;
+}
+.cross-layout .knowledge-answer-panel {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.cross-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: clamp(14px, 1.55vw, 16px);
+  line-height: 1.52;
+}
+.cross-table th,
+.cross-table td {
+  padding: 8px 7px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.cross-table th:first-child,
+.cross-table td:first-child {
+  width: 14%;
+}
+
+.general-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr);
+  gap: 9px;
+}
+.general-answer-panel {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.general-question-panel { padding: 10px 12px; }
+.general-source summary,
+.general-explanation summary {
+  padding: 7px 9px;
+  font-size: 15px;
+}
+.general-source .general-markdown {
+  padding: 7px 9px 9px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.general-question-text {
+  font-size: clamp(17px, 1.9vw, 19px);
+  line-height: 1.6;
+}
+.general-md-table {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.general-md-table th,
+.general-md-table td { padding: 7px; }
+.general-explanation .general-markdown {
+  font-size: 14px;
+  line-height: 1.52;
+}
+
+@media (orientation: landscape) and (max-height: 850px) and (min-width: 700px) {
+  .cross-layout {
+    grid-template-columns: minmax(0, 2.2fr) minmax(285px, .8fr);
+    gap: 8px;
+  }
+  .cross-table {
+    font-size: clamp(14px, 1.45vw, 16px);
+    line-height: 1.46;
+  }
+  .cross-table th,
+  .cross-table td { padding: 7px 6px; }
+
+  .general-layout {
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr);
+    gap: 8px;
+  }
+  .general-question-panel {
+    padding: 9px 11px;
+    max-height: calc(100vh - 95px);
+  }
+  .general-source summary,
+  .general-explanation summary {
+    font-size: 15px;
+  }
+  .general-source .general-markdown {
+    font-size: 16px;
+    line-height: 1.56;
+  }
+  .general-question-text {
+    font-size: clamp(17px, 1.8vw, 19px);
+    line-height: 1.56;
+  }
+}
