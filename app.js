@@ -3,6 +3,8 @@
 const STORAGE_KEY = 'social.simpleProgress.v1';
 const SETTINGS_KEY = 'social.simpleSettings.v1';
 const TABLE_PROGRESS_KEY = 'social.historyKnowledgeProgress.v1';
+const CROSS_PROGRESS_KEY = 'social.historyCrossProgress.v1';
+const GENERAL_PROGRESS_KEY = 'social.historyGeneralProgress.v1';
 
 const state = {
   data: [],
@@ -17,8 +19,14 @@ const state = {
   selectedSubtag: null,
   issues: [],
   knowledgeTables: null,
+  crossTables: null,
+  generalSets: null,
   tableProgress: loadJSON(TABLE_PROGRESS_KEY, { results: {} }),
-  tableSession: null
+  crossProgress: loadJSON(CROSS_PROGRESS_KEY, { results: {} }),
+  generalProgress: loadJSON(GENERAL_PROGRESS_KEY, { results: {} }),
+  tableSession: null,
+  crossSession: null,
+  generalSession: null
 };
 
 const main = document.getElementById('main');
@@ -35,7 +43,7 @@ init().catch(err => {
 });
 
 async function init() {
-  await Promise.all([loadQuestions(), loadRewards(), loadKnowledgeTables()]);
+  await Promise.all([loadQuestions(), loadRewards(), loadKnowledgeTables(), loadCrossTables(), loadGeneralSets()]);
   renderHome();
 }
 
@@ -93,6 +101,32 @@ async function loadKnowledgeTables() {
   }
 }
 
+
+
+async function loadCrossTables() {
+  try {
+    const res = await fetch('history_cross_tables.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.tables) || !data.problems) throw new Error('データ形式が不正です');
+    state.crossTables = data;
+  } catch (e) {
+    state.issues.push(`時代横断表: ${e.message}`);
+  }
+}
+
+async function loadGeneralSets() {
+  try {
+    const res = await fetch('history_general_sets.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.sets)) throw new Error('データ形式が不正です');
+    state.generalSets = data;
+  } catch (e) {
+    state.issues.push(`総合問題: ${e.message}`);
+  }
+}
+
 async function loadRewards() {
   try {
     const res = await fetch('rewards.json', { cache: 'no-store' });
@@ -110,7 +144,10 @@ function renderHome() {
   state.selectedSubject = null;
   state.selectedSubtag = null;
   state.tableSession = null;
-  setHeader('中3社会 書答式', state.knowledgeTables ? '全1,206問＋歴史 知識定着シート' : '全1,206問・周回学習');
+  state.crossSession = null;
+  state.generalSession = null;
+  const historyExtras = (state.knowledgeTables?.totalBlanks || 0) + (state.crossTables?.totalBlanks || 0) + (state.generalSets?.totalQuestions || 0);
+  setHeader('中3社会 書答式', historyExtras ? `通常1,206問＋歴史追加 ${historyExtras.toLocaleString()}問分` : '全1,206問・周回学習');
   main.innerHTML = `
     <section class="hero">
       <div class="settings-row">1回に解く問題数
@@ -145,14 +182,26 @@ function renderSubtags(subject) {
   const subMap = state.bySubject.get(subject);
   setHeader(subject, '単元を選んでください');
   const allLabel = subject === '都道府県特訓' ? '全特訓' : '全単元';
-  const knowledgeCard = subject === '歴史' && state.knowledgeTables ? `
-      <article class="unit-tile knowledge-feature" id="knowledgeTableTile">
+  const historySpecialCards = subject === '歴史' ? `
+      <article class="unit-tile note-feature" id="historyNoteTile">
+        <h3>歴史資料ノート</h3><p>112ページ</p>
+        <p>最終レイアウト版PDF</p>
+      </article>
+      ${state.knowledgeTables ? `<article class="unit-tile knowledge-feature" id="knowledgeTableTile">
         <h3>知識定着シート</h3><p>${state.knowledgeTables.totalBlanks.toLocaleString()}空欄</p>
         <p>A/Bで抜く場所を変えて反復</p>
-      </article>` : '';
+      </article>` : ''}
+      ${state.crossTables ? `<article class="unit-tile cross-feature" id="crossTableTile">
+        <h3>時代横断表</h3><p>${state.crossTables.totalBlanks.toLocaleString()}空欄</p>
+        <p>文化・政治・外交などを横断</p>
+      </article>` : ''}
+      ${state.generalSets ? `<article class="unit-tile general-feature" id="generalSetTile">
+        <h3>総合問題</h3><p>${state.generalSets.totalQuestions}問</p>
+        <p>8セット・京都府型の実戦練習</p>
+      </article>` : ''}` : '';
   main.innerHTML = `<section class="subject-group">
     <div class="tile-grid">
-      ${knowledgeCard}
+      ${historySpecialCards}
       <article class="unit-tile featured" data-subtag="__ALL__">
         <h3>${allLabel}</h3><p>${scopeQuestions(subject, '__ALL__').length}問</p><p>すべて混ぜて出題</p>
       </article>
@@ -165,8 +214,14 @@ function renderSubtags(subject) {
     <div class="button-row"><button class="secondary-btn" id="backHome">戻る</button></div>
   </section>`;
   document.querySelectorAll('[data-subtag]').forEach(el => el.addEventListener('click', () => renderModes(subject, el.dataset.subtag)));
+  const noteTile = document.getElementById('historyNoteTile');
+  if (noteTile) noteTile.onclick = renderHistoryNote;
   const knowledgeTile = document.getElementById('knowledgeTableTile');
   if (knowledgeTile) knowledgeTile.onclick = renderKnowledgeVariantSelect;
+  const crossTile = document.getElementById('crossTableTile');
+  if (crossTile) crossTile.onclick = renderCrossVariantSelect;
+  const generalTile = document.getElementById('generalSetTile');
+  if (generalTile) generalTile.onclick = renderGeneralSetSelect;
   document.getElementById('backHome').onclick = renderHome;
 }
 
@@ -646,6 +701,16 @@ function renderStats() {
       <p>自己採点済み：${Object.keys(state.tableProgress.results || {}).length}空欄</p>
       <p>現在の×：${Object.values(state.tableProgress.results || {}).filter(x=>x.lastRating==='cross').length}空欄</p>
     </section>` : ''}
+    ${state.crossTables ? `<section class="panel">
+      <h2>歴史・時代横断表</h2>
+      <p>自己採点済み：${Object.keys(state.crossProgress.results || {}).length}空欄</p>
+      <p>現在の×：${Object.values(state.crossProgress.results || {}).filter(x=>x.lastRating==='cross').length}空欄</p>
+    </section>` : ''}
+    ${state.generalSets ? `<section class="panel">
+      <h2>歴史・総合問題</h2>
+      <p>自己採点済み：${Object.keys(state.generalProgress.results || {}).length}問</p>
+      <p>現在の×：${Object.values(state.generalProgress.results || {}).filter(x=>x.lastRating==='cross').length}問</p>
+    </section>` : ''}
     <section class="panel">
       <h2>成績リセット</h2>
       <p class="muted">回答履歴・間違い記録・周回状況をすべて消します。問題や画像は消えません。</p>
@@ -658,8 +723,12 @@ function renderStats() {
     if (word !== 'リセット') { toast('リセットを中止しました'); return; }
     state.progress = { results: {}, cycles: {} };
     state.tableProgress = { results: {} };
+    state.crossProgress = { results: {} };
+    state.generalProgress = { results: {} };
     saveProgress();
     saveTableProgress();
+    saveCrossProgress();
+    saveGeneralProgress();
     renderStats();
     toast('成績をリセットしました');
   };
@@ -697,6 +766,32 @@ function drawReward() {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// History reference-note PDF mode (v3.5)
+// ---------------------------------------------------------------------------
+function renderHistoryNote() {
+  state.tableSession = null;
+  state.crossSession = null;
+  state.generalSession = null;
+  setHeader('歴史資料ノート', '全112ページ・最終レイアウト版');
+  main.innerHTML = `<section class="history-note-shell">
+    <div class="history-note-toolbar">
+      <div><strong>中3 歴史整理ノート</strong><span>PDF・112ページ</span></div>
+      <div class="button-row history-note-actions">
+        <a class="primary-btn history-note-open" href="history_note_112.pdf" target="_blank" rel="noopener">PDFを大きく開く</a>
+        <button class="secondary-btn" id="backHistoryUnits">歴史へ戻る</button>
+      </div>
+    </div>
+    <div class="history-note-viewer">
+      <iframe class="history-note-frame" src="history_note_112.pdf#page=1&view=FitH" title="中3 歴史整理ノート 112ページ"></iframe>
+      <div class="history-note-fallback">
+        PDFが表示されない場合は「PDFを大きく開く」を押してください。
+      </div>
+    </div>
+  </section>`;
+  document.getElementById('backHistoryUnits').onclick = () => renderSubtags('歴史');
+}
 
 // ---------------------------------------------------------------------------
 // History knowledge-table mode (v3.3)
@@ -940,6 +1035,166 @@ function knowledgeEraBlankIds(era, variant) { return era.sections.flatMap(sec =>
 function isLastKnowledgePending(activeIds, s) { return activeIds.filter(id => !s.ratings[id]).length <= 1; }
 function saveTableProgress() { saveJSON(TABLE_PROGRESS_KEY, state.tableProgress); }
 
+
+
+// ---------------------------------------------------------------------------
+// History cross-era table mode (v3.4)
+// ---------------------------------------------------------------------------
+function renderCrossVariantSelect() {
+  if (!state.crossTables) { toast('時代横断表を読み込めません'); return; }
+  state.crossSession = null;
+  setHeader('歴史・時代横断表', '8つの横断表をA/Bで反復');
+  main.innerHTML = `<section class="panel knowledge-start">
+    <h2>どちらの版で解きますか？</h2>
+    <div class="mode-grid">
+      <button class="mode-card knowledge-mode-a" data-cross-variant="A"><strong>A版</strong><span>表ごとの主要列を空欄にします</span><small>${state.crossTables.variantCounts.A}空欄</small></button>
+      <button class="mode-card knowledge-mode-b" data-cross-variant="B"><strong>B版</strong><span>対応する別の列を空欄にします</span><small>${state.crossTables.variantCounts.B}空欄</small></button>
+    </div>
+    <div class="button-row"><button class="secondary-btn" id="backCrossHistory">戻る</button></div>
+  </section>`;
+  document.querySelectorAll('[data-cross-variant]').forEach(btn => btn.onclick = () => renderCrossTableSelect(btn.dataset.crossVariant));
+  document.getElementById('backCrossHistory').onclick = () => renderSubtags('歴史');
+}
+
+function renderCrossTableSelect(variant) {
+  setHeader(`時代横断表 ${variant}版`, '表を選んでください');
+  const cards = state.crossTables.tables.map(table => {
+    const ids = crossTableBlankIds(table, variant);
+    const wrong = ids.filter(id => state.crossProgress.results[id]?.lastRating === 'cross').length;
+    return `<article class="unit-tile" data-cross-table="${escapeAttr(table.id)}"><h3>${escapeHTML(table.id)} ${escapeHTML(table.title)}</h3><p>${ids.length}空欄</p><p>${wrong ? `× ${wrong}空欄` : '時代をまたいで整理'}</p></article>`;
+  }).join('');
+  main.innerHTML = `<section class="subject-group"><div class="tile-grid">${cards}</div><div class="button-row"><button class="secondary-btn" id="backCrossVariant">戻る</button></div></section>`;
+  document.querySelectorAll('[data-cross-table]').forEach(el => el.onclick = () => startCrossTable(variant, el.dataset.crossTable));
+  document.getElementById('backCrossVariant').onclick = renderCrossVariantSelect;
+}
+
+function startCrossTable(variant, tableId) {
+  const table = state.crossTables.tables.find(x => x.id === tableId);
+  if (!table) return;
+  const ids = crossTableBlankIds(table, variant);
+  state.crossSession = { variant, tableId, currentBlankId: ids[0] || null, revealed: {}, ratings: {}, retryIds: null, pendingRating: null };
+  strokes = [];
+  renderCrossTable();
+}
+
+function renderCrossTable() {
+  const s = state.crossSession;
+  const table = state.crossTables.tables.find(x => x.id === s?.tableId);
+  if (!s || !table) return renderCrossVariantSelect();
+  const activeIds = s.retryIds || crossTableBlankIds(table, s.variant);
+  if (!s.currentBlankId || !activeIds.includes(s.currentBlankId)) s.currentBlankId = activeIds.find(id => !s.ratings[id]) || activeIds[0] || null;
+  const numberMap = new Map(crossTableBlankIds(table, s.variant).map((id, i) => [id, i + 1]));
+  const current = s.currentBlankId ? state.crossTables.problems[s.currentBlankId] : null;
+  const currentNo = current ? numberMap.get(current.id) : '';
+  const revealed = current ? Boolean(s.revealed[current.id]) : false;
+  setHeader(`時代横断表 ${table.id}・${s.variant}版`, table.title);
+  main.innerHTML = `<section class="knowledge-shell cross-shell">
+    <div class="knowledge-toolbar"><strong>${escapeHTML(table.id)} ${escapeHTML(table.title)}</strong><div class="knowledge-count">${crossTableBlankIds(table,s.variant).length}空欄</div></div>
+    <div class="knowledge-layout cross-layout">
+      <section class="knowledge-table-panel"><div class="knowledge-table-wrap"><table class="knowledge-table cross-table">
+        <thead><tr>${table.headers.map(h=>`<th>${escapeHTML(h)}</th>`).join('')}</tr></thead>
+        <tbody>${table.rows.map(row=>renderCrossRow(row,s.variant,numberMap,s)).join('')}</tbody>
+      </table></div></section>
+      <aside class="knowledge-answer-panel">
+        ${current ? `<div class="knowledge-current"><span>${currentNo}</span> を回答中</div><div class="knowledge-constraint muted">${escapeHTML(current.columnTitle || '')}</div>
+          <div class="hand-canvas-wrap knowledge-canvas-wrap"><canvas id="handCanvas" class="hand-canvas knowledge-canvas"></canvas>${strokes.length?'':'<div class="canvas-hint">ここに手書きします</div>'}</div>
+          <div class="canvas-actions"><button class="secondary-btn" id="undoStrokeBtn">一つ戻す</button><button class="secondary-btn" id="clearCanvasBtn">全消去</button></div>
+          ${revealed ? `<div class="knowledge-answer-reveal">正答：<strong>${escapeHTML(current.answer)}</strong></div><div class="written-ratings knowledge-ratings">
+            <button data-cross-rating="circle" class="judge-good ${s.pendingRating==='circle'?'selected':''}">○<small>できた</small></button>
+            <button data-cross-rating="triangle" class="judge-mid ${s.pendingRating==='triangle'?'selected':''}">△<small>迷った</small></button>
+            <button data-cross-rating="cross" class="judge-bad ${s.pendingRating==='cross'?'selected':''}">×<small>書けなかった</small></button></div>
+            <button id="crossNextBlank" class="primary-btn knowledge-main-btn" ${s.pendingRating?'':'disabled'}>${activeIds.filter(id=>!s.ratings[id]).length<=1?'この表の結果':'次の空欄'}</button>`
+          : '<button id="crossShowAnswer" class="primary-btn knowledge-main-btn">答えを見る</button>'}` : '<div class="empty">この表には空欄がありません。</div>'}
+        <div class="knowledge-side-nav"><button class="secondary-btn" id="backCrossTables">表選択へ</button></div>
+      </aside>
+    </div>
+  </section>`;
+  document.querySelectorAll('[data-cross-blank]').forEach(btn => btn.onclick=()=>{const id=btn.dataset.crossBlank;if(s.retryIds&&!s.retryIds.includes(id))return;s.currentBlankId=id;s.pendingRating=null;strokes=[];renderCrossTable();});
+  document.getElementById('backCrossTables').onclick=()=>renderCrossTableSelect(s.variant);
+  if(current){
+    document.getElementById('undoStrokeBtn').onclick=undoStroke; document.getElementById('clearCanvasBtn').onclick=clearCanvas;
+    if(!revealed) document.getElementById('crossShowAnswer').onclick=()=>{s.revealed[current.id]=true;s.pendingRating=null;renderCrossTable();};
+    else { document.querySelectorAll('[data-cross-rating]').forEach(btn=>btn.onclick=()=>{s.pendingRating=btn.dataset.crossRating;renderCrossTable();}); document.getElementById('crossNextBlank').onclick=commitCrossRating; }
+    setupHandCanvas();
+  }
+}
+
+function renderCrossRow(row, variant, numberMap, s) {
+  const v=row.variants[variant];
+  return `<tr class="${row.distinguish?'knowledge-distinguish':''}">${v.cells.map(cell=>`<td>${renderCrossCell(cell,numberMap,s)}</td>`).join('')}</tr>`;
+}
+function renderCrossCell(cell, numberMap, s) {
+  return cell.parts.map(part=>{
+    if(part.text!==undefined) return escapeHTML(part.text).replace(/\n/g,'<br>');
+    const id=part.blank,p=state.crossTables.problems[id],no=numberMap.get(id),active=s.currentBlankId===id,revealed=Boolean(s.revealed[id]);
+    if(revealed) return `<button class="knowledge-blank revealed ${active?'active':''}" data-cross-blank="${id}"><span class="blank-no">${no}</span><span class="blank-answer">${escapeHTML(p.answer)}</span></button>`;
+    return `<button class="knowledge-blank ${active?'active':''}" data-cross-blank="${id}"><span class="blank-no">${no}</span><span class="blank-space">（　　　）</span></button>`;
+  }).join('');
+}
+function commitCrossRating(){
+  const s=state.crossSession,id=s?.currentBlankId;if(!s||!id||!s.pendingRating)return;const rating=s.pendingRating;s.ratings[id]=rating;
+  const prev=state.crossProgress.results[id]||{attempts:0,circleCount:0};state.crossProgress.results[id]={attempts:(prev.attempts||0)+1,circleCount:(prev.circleCount||0)+(rating==='circle'?1:0),lastRating:rating,lastAnsweredAt:new Date().toISOString()};saveCrossProgress();
+  const table=state.crossTables.tables.find(x=>x.id===s.tableId),active=s.retryIds||crossTableBlankIds(table,s.variant),next=active.find(x=>!s.ratings[x]);
+  if(next){s.currentBlankId=next;s.pendingRating=null;strokes=[];renderCrossTable();}else renderCrossResult();
+}
+function renderCrossResult(){
+  const s=state.crossSession,table=state.crossTables.tables.find(x=>x.id===s.tableId),ids=s.retryIds||crossTableBlankIds(table,s.variant),counts={circle:0,triangle:0,cross:0};ids.forEach(id=>{if(s.ratings[id])counts[s.ratings[id]]++;});const crossIds=ids.filter(id=>s.ratings[id]==='cross');
+  setHeader(`時代横断表 ${table.id}・${s.variant}版`,'結果');
+  main.innerHTML=`<section class="panel result-panel knowledge-result"><h2>${escapeHTML(table.title)}</h2><div class="knowledge-result-grid"><div><strong>○</strong><span>${counts.circle}</span></div><div><strong>△</strong><span>${counts.triangle}</span></div><div><strong>×</strong><span>${counts.cross}</span></div></div><div class="button-row knowledge-result-actions">${crossIds.length?'<button class="primary-btn" id="retryCrossWrong">×だけもう一度</button>':''}<button class="secondary-btn" id="restartCross">この表を最初から</button><button class="secondary-btn" id="backCrossList">表選択へ</button></div></section>`;
+  const retry=document.getElementById('retryCrossWrong');if(retry)retry.onclick=()=>{s.retryIds=crossIds;s.ratings={};s.pendingRating=null;s.currentBlankId=crossIds[0];crossIds.forEach(id=>delete s.revealed[id]);strokes=[];renderCrossTable();};
+  document.getElementById('restartCross').onclick=()=>startCrossTable(s.variant,s.tableId);document.getElementById('backCrossList').onclick=()=>renderCrossTableSelect(s.variant);
+}
+function crossTableBlankIds(table,variant){const ids=[];table.rows.forEach(row=>row.variants[variant].blankIds.forEach(id=>ids.push(id)));return ids;}
+function saveCrossProgress(){saveJSON(CROSS_PROGRESS_KEY,state.crossProgress);}
+
+// ---------------------------------------------------------------------------
+// History comprehensive problem mode (v3.4)
+// ---------------------------------------------------------------------------
+function renderGeneralSetSelect(){
+  if(!state.generalSets){toast('総合問題を読み込めません');return;} state.generalSession=null;setHeader('歴史・総合問題','8セット・全80問');
+  const cards=state.generalSets.sets.map(set=>{const wrong=set.questions.filter(q=>state.generalProgress.results[q.id]?.lastRating==='cross').length;return `<article class="unit-tile general-set-card" data-general-set="${set.id}"><h3>${String(set.number).padStart(2,'0')} ${escapeHTML(set.title)}</h3><p>${set.questions.length}問</p><p>${wrong?`× ${wrong}問`:'問題＋解答・解説'}</p></article>`;}).join('');
+  main.innerHTML=`<section class="subject-group"><div class="tile-grid">${cards}</div><div class="button-row"><button class="secondary-btn" id="backGeneralHistory">戻る</button></div></section>`;
+  document.querySelectorAll('[data-general-set]').forEach(el=>el.onclick=()=>startGeneralSet(el.dataset.generalSet));document.getElementById('backGeneralHistory').onclick=()=>renderSubtags('歴史');
+}
+function startGeneralSet(setId, questionIds=null){
+  const set=state.generalSets.sets.find(x=>x.id===setId);if(!set)return;const ids=questionIds||set.questions.map(q=>q.id);state.generalSession={setId,ids,index:0,revealed:false,pendingRating:null,ratings:{},isRetry:Boolean(questionIds)};strokes=[];renderGeneralQuestion();
+}
+function renderGeneralQuestion(){
+  const s=state.generalSession,set=state.generalSets.sets.find(x=>x.id===s?.setId);if(!s||!set)return renderGeneralSetSelect();const id=s.ids[s.index],q=set.questions.find(x=>x.id===id);if(!q)return renderGeneralSetResult();
+  setHeader(`総合問題 ${String(set.number).padStart(2,'0')}`,`${s.index+1}/${s.ids.length}問 ${set.title}`);
+  main.innerHTML=`<section class="general-shell"><div class="general-layout">
+    <section class="general-question-panel"><details class="general-source" ${s.index===0?'open':''}><summary>共通資料・問題文</summary><div class="general-markdown">${renderMarkdownLite(set.intro)}</div></details><div class="general-qno">小問（${q.number}）</div><div class="general-markdown general-question-text">${renderMarkdownLite(q.question)}</div></section>
+    <aside class="knowledge-answer-panel general-answer-panel"><div class="knowledge-current"><span>${q.number}</span> を回答中</div><div class="knowledge-constraint">${escapeHTML(q.format||'')}</div>
+      <div class="hand-canvas-wrap knowledge-canvas-wrap"><canvas id="handCanvas" class="hand-canvas knowledge-canvas"></canvas>${strokes.length?'':'<div class="canvas-hint">ここに手書きします</div>'}</div><div class="canvas-actions"><button class="secondary-btn" id="undoStrokeBtn">一つ戻す</button><button class="secondary-btn" id="clearCanvasBtn">全消去</button></div>
+      ${s.revealed?`<div class="general-answer-box"><span>正答</span><strong>${escapeHTML(q.answer)}</strong></div><details class="general-explanation" open><summary>解説</summary><div class="general-markdown">${renderMarkdownLite(q.explanation)}</div></details><div class="written-ratings knowledge-ratings"><button data-general-rating="circle" class="judge-good ${s.pendingRating==='circle'?'selected':''}">○<small>できた</small></button><button data-general-rating="triangle" class="judge-mid ${s.pendingRating==='triangle'?'selected':''}">△<small>迷った</small></button><button data-general-rating="cross" class="judge-bad ${s.pendingRating==='cross'?'selected':''}">×<small>できなかった</small></button></div><button id="generalNext" class="primary-btn knowledge-main-btn" ${s.pendingRating?'':'disabled'}>${s.index===s.ids.length-1?'セット結果':'次の問題'}</button>`:'<button id="generalShowAnswer" class="primary-btn knowledge-main-btn">答えを見る</button>'}
+      <div class="knowledge-side-nav"><button class="secondary-btn" id="backGeneralSets">セット選択へ</button></div>
+    </aside></div></section>`;
+  document.getElementById('undoStrokeBtn').onclick=undoStroke;document.getElementById('clearCanvasBtn').onclick=clearCanvas;document.getElementById('backGeneralSets').onclick=renderGeneralSetSelect;
+  if(!s.revealed)document.getElementById('generalShowAnswer').onclick=()=>{s.revealed=true;s.pendingRating=null;renderGeneralQuestion();};else{document.querySelectorAll('[data-general-rating]').forEach(btn=>btn.onclick=()=>{s.pendingRating=btn.dataset.generalRating;renderGeneralQuestion();});document.getElementById('generalNext').onclick=commitGeneralRating;} setupHandCanvas();
+}
+function commitGeneralRating(){
+  const s=state.generalSession,set=state.generalSets.sets.find(x=>x.id===s.setId),id=s.ids[s.index];if(!s.pendingRating)return;const rating=s.pendingRating;s.ratings[id]=rating;const prev=state.generalProgress.results[id]||{attempts:0,circleCount:0};state.generalProgress.results[id]={attempts:(prev.attempts||0)+1,circleCount:(prev.circleCount||0)+(rating==='circle'?1:0),lastRating:rating,lastAnsweredAt:new Date().toISOString()};saveGeneralProgress();
+  if(s.index<s.ids.length-1){s.index++;s.revealed=false;s.pendingRating=null;strokes=[];renderGeneralQuestion();}else renderGeneralSetResult();
+}
+function renderGeneralSetResult(){
+  const s=state.generalSession,set=state.generalSets.sets.find(x=>x.id===s.setId),counts={circle:0,triangle:0,cross:0};s.ids.forEach(id=>{if(s.ratings[id])counts[s.ratings[id]]++;});const bad=s.ids.filter(id=>s.ratings[id]==='cross');setHeader(`総合問題 ${String(set.number).padStart(2,'0')}`,'セット結果');
+  main.innerHTML=`<section class="panel result-panel knowledge-result"><h2>${escapeHTML(set.title)}</h2><div class="knowledge-result-grid"><div><strong>○</strong><span>${counts.circle}</span></div><div><strong>△</strong><span>${counts.triangle}</span></div><div><strong>×</strong><span>${counts.cross}</span></div></div><div class="button-row knowledge-result-actions">${bad.length?'<button class="primary-btn" id="retryGeneralWrong">×だけもう一度</button>':''}<button class="secondary-btn" id="restartGeneral">このセットを最初から</button><button class="secondary-btn" id="backGeneralList">セット選択へ</button></div></section>`;
+  const retry=document.getElementById('retryGeneralWrong');if(retry)retry.onclick=()=>startGeneralSet(s.setId,bad);document.getElementById('restartGeneral').onclick=()=>startGeneralSet(s.setId);document.getElementById('backGeneralList').onclick=renderGeneralSetSelect;
+}
+function saveGeneralProgress(){saveJSON(GENERAL_PROGRESS_KEY,state.generalProgress);}
+
+function renderMarkdownLite(text=''){
+  const lines=String(text).split(/\r?\n/),out=[];let i=0;
+  const inline=x=>escapeHTML(x).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  while(i<lines.length){
+    if(lines[i].trim().startsWith('|')&&i+1<lines.length&&/^\|?\s*:?-+/.test(lines[i+1].trim())){
+      const rows=[];while(i<lines.length&&lines[i].trim().startsWith('|')){rows.push(lines[i].trim().replace(/^\||\|$/g,'').split('|').map(x=>x.trim()));i++;}
+      if(rows.length>=2){const head=rows[0],body=rows.slice(2);out.push(`<div class="general-table-wrap"><table class="general-md-table"><thead><tr>${head.map(c=>`<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);continue;}
+    }
+    let line=lines[i++];if(!line.trim()){out.push('<div class="general-spacer"></div>');continue;}if(line.trim()==='---'){out.push('<hr>');continue;}if(/^>/.test(line.trim())){const block=[line.replace(/^\s*>\s?/,'')];while(i<lines.length&&/^\s*>/.test(lines[i]))block.push(lines[i++].replace(/^\s*>\s?/,''));out.push(`<blockquote>${block.map(inline).join('<br>')}</blockquote>`);continue;}out.push(`<p>${inline(line)}</p>`);
+  }
+  return out.join('');
+}
 function scopeQuestions(subject, subtag) {
   const subMap = state.bySubject.get(subject);
   if (!subMap) return [];

@@ -298,3 +298,108 @@ th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left
   .knowledge-answer-panel { position: static; }
   .knowledge-table { min-width: 680px; }
 }
+
+/* v3.4 History cross-era tables + comprehensive sets */
+.cross-feature {
+  border: 2px solid #5f9f8d;
+  background: linear-gradient(145deg, #ffffff, #edf9f5);
+  box-shadow: 0 12px 34px rgba(55, 125, 104, .15);
+}
+.cross-feature h3 { color: #347965; }
+.general-feature {
+  border: 2px solid #d69b56;
+  background: linear-gradient(145deg, #ffffff, #fff6e9);
+  box-shadow: 0 12px 34px rgba(163, 104, 38, .14);
+}
+.general-feature h3 { color: #9a5f1f; }
+.cross-layout { grid-template-columns: minmax(0, 2.2fr) minmax(285px, .8fr); }
+.cross-table { min-width: 880px; table-layout: auto; }
+.cross-table th, .cross-table td { min-width: 135px; }
+.cross-table th:first-child, .cross-table td:first-child { min-width: 105px; }
+.cross-table td { width: auto; }
+
+.general-shell { display: grid; gap: 10px; }
+.general-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); gap: 12px; align-items: start; }
+.general-question-panel {
+  border: 1px solid var(--border); border-radius: 18px; background: #fff; box-shadow: var(--shadow);
+  padding: 14px 16px; max-height: calc(100vh - 115px); overflow-y: auto;
+}
+.general-answer-panel { position: sticky; top: 82px; }
+.general-source { border: 1px solid #ded9e8; border-radius: 13px; background: #faf9fd; margin-bottom: 12px; }
+.general-source summary, .general-explanation summary { cursor: pointer; font-weight: 900; padding: 9px 11px; color: #58477d; }
+.general-source[open] summary { border-bottom: 1px solid #e5e1ed; }
+.general-source .general-markdown { padding: 9px 12px 12px; }
+.general-qno { display: inline-block; margin: 2px 0 7px; padding: 4px 10px; border-radius: 999px; background: #5b4b7a; color: #fff; font-weight: 900; }
+.general-question-text { font-size: clamp(15px, 1.8vw, 18px); line-height: 1.65; }
+.general-markdown p { margin: 5px 0; }
+.general-markdown blockquote { margin: 8px 0; padding: 9px 12px; border-left: 4px solid #8f7eb0; background: #f7f4fb; border-radius: 0 10px 10px 0; line-height: 1.6; }
+.general-spacer { height: 7px; }
+.general-table-wrap { overflow-x: auto; margin: 8px 0; }
+.general-md-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.general-md-table th { background: #5b4b7a; color: #fff; padding: 7px 9px; border: 1px solid #ddd6e9; }
+.general-md-table td { padding: 7px 9px; border: 1px solid #ddd6e9; vertical-align: top; }
+.general-answer-box { margin: 8px 0; padding: 10px; border-radius: 12px; background: #fff2f2; text-align: center; }
+.general-answer-box span { display: block; font-size: 11px; font-weight: 900; color: #8d6c6c; }
+.general-answer-box strong { display: block; color: #cf2929; font-size: clamp(19px, 2.5vw, 27px); line-height: 1.35; overflow-wrap: anywhere; }
+.general-explanation { margin: 7px 0; border: 1px solid #dfe4ea; border-radius: 12px; background: #f6f8fa; max-height: 220px; overflow-y: auto; }
+.general-explanation .general-markdown { padding: 0 10px 9px; font-size: 13px; line-height: 1.5; }
+.general-set-card h3 { min-height: 2.6em; }
+
+@media (max-width: 760px), (orientation: portrait) {
+  .knowledge-layout, .cross-layout, .general-layout { grid-template-columns: 1fr; }
+  .knowledge-answer-panel, .general-answer-panel { position: static; }
+  .general-question-panel { max-height: none; }
+  .cross-table { min-width: 800px; }
+}
+
+@media (orientation: landscape) and (max-height: 850px) and (min-width: 700px) {
+  .general-question-panel { padding: 10px 13px; max-height: calc(100vh - 95px); }
+  .general-source summary, .general-explanation summary { padding: 6px 9px; font-size: 12px; }
+  .general-source .general-markdown { padding: 6px 9px 9px; font-size: 12px; }
+  .general-question-text { font-size: 14px; line-height: 1.48; }
+  .general-answer-box { margin: 5px 0; padding: 6px 8px; }
+  .general-explanation { max-height: 155px; margin: 5px 0; }
+  .general-explanation .general-markdown { font-size: 11px; line-height: 1.4; }
+  .cross-table { font-size: 12px; }
+  .cross-table th, .cross-table td { padding: 7px 8px; }
+}
+
+
+/* v3.5 History reference-note PDF */
+.note-feature {
+  border: 2px solid #6477b8;
+  background: linear-gradient(145deg, #ffffff, #eef2ff);
+  box-shadow: 0 12px 34px rgba(67, 86, 145, .15);
+}
+.note-feature h3 { color: #40538f; }
+.history-note-shell { display: grid; gap: 10px; }
+.history-note-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: var(--shadow);
+}
+.history-note-toolbar > div:first-child { display: grid; gap: 2px; }
+.history-note-toolbar strong { font-size: 17px; color: #3f4d80; }
+.history-note-toolbar span { font-size: 12px; color: var(--muted); font-weight: 800; }
+.history-note-actions { margin: 0; }
+.history-note-open { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.history-note-viewer {
+  position: relative; min-height: calc(100vh - 150px); border: 1px solid var(--border); border-radius: 18px;
+  overflow: hidden; background: #eef0f5; box-shadow: var(--shadow);
+}
+.history-note-frame { width: 100%; height: calc(100vh - 150px); min-height: 620px; border: 0; background: #fff; }
+.history-note-fallback {
+  position: absolute; right: 10px; bottom: 8px; padding: 5px 8px; border-radius: 9px;
+  background: rgba(255,255,255,.9); color: #687087; font-size: 10px; pointer-events: none;
+}
+@media (orientation: landscape) and (max-height: 850px) and (min-width: 700px) {
+  .history-note-toolbar { padding: 6px 9px; }
+  .history-note-viewer { min-height: calc(100vh - 112px); }
+  .history-note-frame { height: calc(100vh - 112px); min-height: 450px; }
+}
+@media (max-width: 760px), (orientation: portrait) {
+  .history-note-toolbar { align-items: stretch; }
+  .history-note-actions { width: 100%; }
+  .history-note-actions > * { flex: 1 1 180px; }
+  .history-note-viewer { min-height: 70vh; }
+  .history-note-frame { height: 70vh; min-height: 520px; }
+}
